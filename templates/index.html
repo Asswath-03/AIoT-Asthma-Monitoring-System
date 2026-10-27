@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AIoT Asthma Monitoring System</title>
+
+<!-- Google Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Chart.js (bundled locally so it works even if external CDNs are blocked) -->
+<script src="{{ url_for('static', filename='chart.umd.js') }}"></script>
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%AB%81%3C/text%3E%3C/svg%3E">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- Loading overlay shown until the first sensor reading arrives -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loader"></div>
+    <p>Waiting for sensor data from ESP32...</p>
+</div>
+
+<!-- Alarm sound is generated in-browser via the Web Audio API (see script.js),
+     so no external audio file is needed and nothing can be blocked by a network/CDN. -->
+
+<div class="app">
+
+    <!-- ===================== HEADER ===================== -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="logo-icon">🫁</div>
+            <div>
+                <h1>AIoT Asthma Monitoring System</h1>
+                <p class="subtitle">Real-time respiratory environment tracking</p>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <button id="enableNotificationsBtn" class="btn btn-secondary notif-btn">🔔 Enable Alerts</button>
+            <div class="connection-pill" id="connectionPill">
+                <span class="dot" id="connectionDot"></span>
+                <span id="connectionText">Connecting...</span>
+            </div>
+            <div class="datetime-box">
+                <span id="currentDate">--</span>
+                <span id="currentTime">--:--:--</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================== ALERT BANNER ===================== -->
+    <div id="alertBanner" class="alert-banner hidden">
+        <span class="alert-icon" id="alertIcon">⚠</span>
+        <span>Asthma Risk Detected — Environmental conditions may trigger symptoms</span>
+    </div>
+
+    <!-- ===================== SENSOR CARDS ===================== -->
+    <section class="cards-grid">
+
+        <div class="card glass">
+            <div class="card-icon temp-icon">🌡️</div>
+            <div class="card-body">
+                <span class="card-label">Temperature</span>
+                <span class="card-value" id="tempValue">-- °C</span>
+            </div>
+        </div>
+
+        <div class="card glass">
+            <div class="card-icon humidity-icon">💧</div>
+            <div class="card-body">
+                <span class="card-label">Humidity</span>
+                <span class="card-value" id="humidityValue">-- %</span>
+            </div>
+        </div>
+
+        <div class="card glass">
+            <div class="card-icon air-icon">🍃</div>
+            <div class="card-body">
+                <span class="card-label">Air Quality</span>
+                <span class="card-value" id="airValue">-- ppm</span>
+            </div>
+            <div class="gauge-wrap">
+                <svg viewBox="0 0 120 70" class="gauge-svg">
+                    <path d="M10,60 A50,50 0 0,1 110,60" class="gauge-track" />
+                    <path d="M10,60 A50,50 0 0,1 110,60" class="gauge-fill" id="airGaugeFill" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="card glass status-card" id="statusCard">
+            <div class="card-icon status-icon" id="statusIcon">✅</div>
+            <div class="card-body">
+                <span class="card-label">Status</span>
+                <span class="card-value" id="statusValue">--</span>
+            </div>
+        </div>
+
+    </section>
+
+    <p class="update-timestamp">Last updated: <span id="lastUpdated">--</span></p>
+
+    <!-- ===================== CHARTS ===================== -->
+    <section class="charts-grid">
+        <div class="chart-card glass">
+            <h3>Temperature (°C)</h3>
+            <canvas id="tempChart"></canvas>
+        </div>
+        <div class="chart-card glass">
+            <h3>Humidity (%)</h3>
+            <canvas id="humidityChart"></canvas>
+        </div>
+        <div class="chart-card glass">
+            <h3>Air Quality (ppm)</h3>
+            <canvas id="airChart"></canvas>
+        </div>
+    </section>
+
+    <!-- ===================== AI INSIGHT ===================== -->
+    <section class="ai-section glass">
+        <div class="ai-header">
+            <div class="ai-title-group">
+                <span class="ai-icon">🧠</span>
+                <div>
+                    <h3>AI Insight</h3>
+                    <p class="ai-subtitle">Generated locally by Ollama — runs fully offline</p>
+                </div>
+            </div>
+            <button id="askAiBtn" class="btn btn-primary">Ask AI</button>
+        </div>
+        <div id="aiInsightBody" class="ai-body">
+            <p class="ai-placeholder">Ask AI, or wait for the next ALERT — an insight will generate automatically.</p>
+        </div>
+    </section>
+
+    <!-- ===================== TABLE ===================== -->
+    <section class="table-section glass">
+        <div class="table-header">
+            <h3>Recent Readings</h3>
+            <div class="table-actions">
+                <button id="resetChartsBtn" class="btn btn-secondary">Reset Charts</button>
+                <button id="downloadCsvBtn" class="btn btn-primary">Download CSV</button>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table id="readingsTable">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Temperature</th>
+                        <th>Humidity</th>
+                        <th>Air Quality</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="readingsTableBody">
+                    <!-- Rows injected by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer class="app-footer">
+        <p>AIoT Asthma Monitoring System &copy; 2026 — ESP32 · Flask · Chart.js</p>
+    </footer>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
