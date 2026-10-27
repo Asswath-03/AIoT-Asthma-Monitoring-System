@@ -303,8 +303,8 @@ The Flask backend exposes the following REST endpoints:
 ## 👨‍💻 Author & Academic Credits
 
 - **Developer:** ASSWATH D ([@Asswath-03](https://github.com/Asswath-03))
-- **Institution:** Department of Computer Science and Engineering (IoT), Sri Krishna College of Engineering and Technology (SKCET)
-- **Course:** 23AD503 – Artificial Intelligence for Internet of Things
+- **Institution:** Department of Computer Science and Engineering (IoT), Sri Krishna College of Technology (SKCT)
+- **Course:** Artificial Intelligence for Internet of Things
 - **Year:** 2026 – 2027
 
 ---
@@ -312,3 +312,4 @@ The Flask backend exposes the following REST endpoints:
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE) - see the file for details.
+
